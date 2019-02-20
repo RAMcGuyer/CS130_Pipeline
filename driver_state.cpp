@@ -37,23 +37,30 @@ void initialize_render(driver_state& state, int width, int height)
 void render(driver_state& state, render_type type)
 {
     data_geometry *tri;
-    unsigned index;
+    int index;
     float *ptr;
+    data_vertex *v;
     switch(type){
         case render_type::triangle:
             tri = new data_geometry[3];
+            v = new data_vertex[3];
             index = 0;
             ptr = state.vertex_data;
             for(unsigned i = 0; i <(unsigned) state.num_vertices; i++){
                 tri[index].data = ptr;
-                index++;
-                ptr+=(state.floats_per_vertex-1);
+                v[index].data = ptr;
+                ptr += state.floats_per_vertex;
                 if(index == 2){
-                    index = 0;
+                    index = -1;
+                    state.vertex_shader(v[0], tri[0], state.uniform_data);
+                    state.vertex_shader(v[1], tri[1], state.uniform_data);
+                    state.vertex_shader(v[2], tri[2], state.uniform_data);
                     rasterize_triangle(state,(const data_geometry**) &tri);
                 }
+                index++;
             }
             delete []tri;
+            delete []v;
             break;
         case render_type::indexed:
             
@@ -91,17 +98,48 @@ void clip_triangle(driver_state& state, const data_geometry* in[3],int face)
 // fragments, calling the fragment shader, and z-buffering.
 void rasterize_triangle(driver_state& state, const data_geometry* in[3])
 {
-    data_vertex v;
-    data_geometry g0, g1, g2;
-    g0 = (*in)[0]; 
-    g1 = (*in)[1];
-    g2 = (*in)[2];
     
-    v.data = g0.data;
-    state.vertex_shader(v, g0, state.uniform_data); 
-    v.data = g1.data;
-    state.vertex_shader(v, g1, state.uniform_data); 
-    v.data = g2.data;
-    state.vertex_shader(v, g2, state.uniform_data); 
+    auto w = state.image_width;
+    auto h = state.image_height; 
+    //Part 3, section 3
+
+    
+    int aX = 0, bX = 0, cX = 0;
+    int aY = 0, bY = 0, cY = 0;
+    aX = (w/2)*(*in)[0].gl_Position[0] + (w/2 -(1/2));
+    bX = (w/2)*(*in)[1].gl_Position[0] + (w/2 -(1/2));
+    cX = (w/2)*(*in)[2].gl_Position[0] + (w/2 -(1/2));
+    
+    aY = (h/2)*(*in)[0].gl_Position[1] + (h/2 -(1/2));
+    bY = (h/2)*(*in)[1].gl_Position[1] + (h/2 -(1/2));
+    cY = (h/2)*(*in)[2].gl_Position[1] + (h/2 -(1/2));
+
+    //Part3, section 4
+   
+    //alpha area
+    float k0 = (bX*cY - cX*bY);
+    float k1 = bY - cY;
+    float k2 = cX - bX;
+    //beta area
+    float t0 = (cX*aY-aX*cY);
+    float t1 = cY - aY;
+    float t2 = aX - cX;
+    //gamma area
+    float z0 = (aX*bY-bX*aY);
+    float z1 = aY - bY;
+    float z2 = bX - aX;
+
+    float areaABC = 0.5f*((bX*cY - cX*bY) - (aX*cY - cX*aY) - (aX*bY - bX*aY));
+    float alpha = 0, beta = 0, gamma =0;
+    for(unsigned j = 0; j < h; j++){
+        for(unsigned i = 0; i < w; i++){
+            alpha = (0.5f*(k0 + k1*i + k2*j))/areaABC;
+            beta = (0.5f*(t0 + t1*i + t2*j))/areaABC;
+            gamma = (0.5f*(z0 + z1*i + z2*j))/areaABC;
+            if(alpha >= 0 && beta >= 0 && gamma >=0){
+                state.image_color[i+j*w] = make_pixel(255.0, 255.0, 255.0);
+            }
+        }
+    }
 }
 
