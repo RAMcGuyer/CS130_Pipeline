@@ -34,10 +34,10 @@ void initialize_render(driver_state& state, int width, int height)
 
 // Takes in the two coordinate arrays and returns an array containing
 // the maximum X coordinate and the maximum Y coordinate
-void getMaxXY(int x[3], int y[3], int *maxes, int w, int h){
+void getMaxXY(float x[3], float y[3], float *maxes, int w, int h){
   
-    int maxX = x[0];
-    int maxY = y[0];
+    float maxX = x[0];
+    float maxY = y[0];
     for(unsigned i = 1; i < 3; i++){
         if(x[i] > maxX)
             maxX = x[i];
@@ -56,9 +56,9 @@ void getMaxXY(int x[3], int y[3], int *maxes, int w, int h){
 }
 // Takes in the two coordinate arrays and returns an array containing
 // the minum X coordinate and the minimum Y coordinate
-void getMinXY(int x[3], int y[3], int* mins){
-    int minX = x[0];
-    int minY = y[0];
+void getMinXY(float x[3], float y[3], float* mins){
+    float minX = x[0];
+    float minY = y[0];
     for(unsigned i = 1; i < 3; i++){
         if(x[i] < minX)
             minX = x[i];
@@ -524,9 +524,9 @@ void dataFragmentFill(driver_state& state, data_fragment& in, const data_geometr
 void rasterize_triangle(driver_state& state, const data_geometry* in[3])
 {
     
-    auto w = state.image_width;
-    auto h = state.image_height; 
-    int x_coord[3], y_coord[3], z_coord[3], w_coord[3];// Arrays that hold the NDC for the vertices
+    int w = state.image_width;
+    int h = state.image_height; 
+    float x_coord[3], y_coord[3], z_coord[3], w_coord[3];// Arrays that hold the NDC for the vertices
     float wOvr2 = 0.5f*w; // (w/2)
     float hOvr2 = 0.5f*h; // (h/2)
     float wNDC = wOvr2 - 0.5f; // (w/2 -(1/2))
@@ -535,7 +535,7 @@ void rasterize_triangle(driver_state& state, const data_geometry* in[3])
     float k0 = 0.0f, k1 = 0.0f, k2 = 0.0f; //For calculated the area of alpha
     float t0 = 0.0f, t1 = 0.0f, t2 = 0.0f; //For calculating the area of beta
     float z0 = 0.0f, z1 = 0.0f, z2 = 0.0f; //For calclating the area of gamma
-    int mins[2], maxes[2];
+    float mins[2], maxes[2];
     //Part 3, section 3
     for(unsigned k = 0; k < 3; k++){
         x_coord[k] = wOvr2*((*in)[k].gl_Position[0] / (*in)[k].gl_Position[3]) + wNDC;
